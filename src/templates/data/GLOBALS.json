@@ -1,0 +1,21 @@
+{
+
+  "ENV": {
+    "appRoot": "",
+    "assetsRoot": "./assets",
+    "googleMapsApiKey": "",
+    "cssVersion": "0.1",
+    "jsVersion": "0.1",
+		"debug": true
+  },
+
+  "lang": "en",
+  "meta": {
+    "pageTitle": "Satuweb master-template",
+    "pageDescription": ""
+  },
+  "googleAnalytics": {
+    "id": "UA-XXXXXXX",
+    "domain": "auto"
+  }
+}

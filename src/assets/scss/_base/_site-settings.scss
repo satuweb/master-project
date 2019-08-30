@@ -1,0 +1,29 @@
+/*
+**Vars
+*/
+
+// = Typography
+// -----------------------------
+
+$base-font-size: 62.5%;
+
+// = Breakpoints
+// -----------------------------
+
+$xxs: em(480px);
+$xs: 	em(640px);
+$sm: 	em(720px);
+$md: 	em(1024px);
+$lg: 	em(1280px);
+$xl: 	em(1440px);
+
+// = Grid
+// -----------------------------
+$max-width-screen: 1280px;
+$nav-height: 90px;
+$whitespace: calculateRem(20px);
+
+
+// = Z-Index
+// -----------------------------
+$zIndexFooter: 10;

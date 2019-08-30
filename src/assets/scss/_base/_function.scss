@@ -1,0 +1,196 @@
+/* ===========================
+   Functions
+   =========================== */
+
+   $browser-context: 16px; // Default
+
+   @function em($pixels, $context: $browser-context) {
+     @return #{$pixels/$context}em;
+   }
+   
+   @function calculateRem($size) {
+     $remSize: $size / $browser-context;
+     @return #{$remSize}rem;
+   }
+   
+   @function parseInt($n) { /* 2 */
+     @return $n / ($n * 0 + 1);
+   }
+   
+   
+   /// Convert angle
+   /// @author Chris Eppstein
+   /// @param {Number} $value - Value to convert
+   /// @param {String} $unit - Unit to convert to
+   /// @return {Number} Converted angle
+   @function convert-angle($value, $unit) {
+     $convertable-units: deg grad turn rad;
+     $conversion-factors: 1 (10grad/9deg) (1turn/360deg) (3.1415926rad/180deg);
+     @if index($convertable-units, unit($value)) and index($convertable-units, $unit) {
+       @return $value
+                / nth($conversion-factors, index($convertable-units, unit($value)))
+                * nth($conversion-factors, index($convertable-units, $unit));
+     }
+     
+     @warn "Cannot convert `#{unit($value)}` to `#{$unit}`.";
+   }
+   
+   /// Test if `$value` is an angle
+   /// @param {*} $value - Value to test
+   /// @return {Bool}
+   @function is-direction($value) {
+     $is-direction: index((to top, to top right, to right top, to right, to bottom right, to right bottom, to bottom, to bottom left, to left bottom, to left, to left top, to top left), $value);
+     $is-angle: type-of($value) == 'number' and index('deg' 'grad' 'turn' 'rad', unit($value));
+     
+     @return $is-direction or $is-angle;
+   }
+   
+   /// Convert a direction to legacy syntax
+   /// @param {Keyword | Angle} $value - Value to convert
+   /// @require {function} is-direction
+   /// @require {function} convert-angle
+   @function legacy-direction($value) {
+     @if is-direction($value) == false {
+       @warn "Cannot convert `#{$value}` to legacy syntax because it doesn't seem to be an angle or a direction";
+     }
+     
+     $conversion-map: ( 
+       to top          : bottom,
+       to top right    : bottom left,
+       to right top    : left bottom,
+       to right        : left,
+       to bottom right : top left,
+       to right bottom : left top,
+       to bottom       : top,
+       to bottom left  : top right,
+       to left bottom  : right top,
+       to left         : right,
+       to left top     : right bottom,
+       to top left     : bottom right
+     );
+       
+     @if map-has-key($conversion-map, $value) {
+       @return map-get($conversion-map, $value);
+     }
+     
+     @return 90deg - convert-angle($value, 'deg');
+   }
+   
+   //Blurground
+   
+   // $rowLength = number of blobs in width
+   // $columnLength = num. blobs in height
+   // $colours = your Sass list of colours
+   @function blurground($rowLength, $columnLength, $colours) {
+     
+     // Determines the size of each grid square
+     $blobWidth: 100%/$rowLength;
+     $blobHeight: 100%/$columnLength;
+     
+     // Centre-align each blob within its grid square
+     $xOffset: $blobWidth/2;
+     $yOffset: $blobHeight/2;
+     
+     // Size determines how much the blobs 
+     // overlap: if size==width, no overlap
+     $xSize: $blobWidth*2;
+     $ySize: $blobHeight*2;
+     
+     // An empty string which will contain our CSS
+     $result: "";
+     
+     // This code loops through each colour
+     // in the list, creating a radial 
+     // gradient (or blob) for each. We
+     // know what number blob we're on, and
+     // the size of our grid, so calculatin
+     // calculating each blob's x & y
+     // co-ordinates is just a math problem
+     @for $currentBlob from 1 through length($colours) {
+       
+       // What row are we on? 
+       $row: ceil($currentBlob/$rowLength);
+       $const: $row - 1;
+       
+       $xPosition: (($currentBlob - ($rowLength * $const)) * $blobWidth) - $xOffset;
+       $yPosition: ($blobHeight * $row) - $yOffset;
+       $string: "radial-gradient(ellipse #{$xSize} #{$ySize} at #{$xPosition} #{$yPosition}, #{rgba(nth($colours,$currentBlob),1)}, #{rgba(nth($colours,$currentBlob),0)})";
+       $separator: "";
+       @if ($currentBlob != 1) {
+         $separator: ",";
+       }
+       $result: $result + $separator + $string;
+     }
+     
+     @return unquote($result);
+   }
+   
+   // 3. USAGE
+   // That's it! Here's how you'd use 
+   // the function:
+   /*
+   .page-head--masthead {
+     background-image: blurground(8,4,$myColours);
+     height: 426px;
+   }
+   */
+   
+   
+   
+   $rem-baseline: 16px !default;
+   $rem-fallback: false !default;
+   $rem-px-only: false !default;
+   
+   @function rem-separator($list, $separator: false) {
+     @if $separator == "comma" or $separator == "space" {
+       @return append($list, null, $separator);
+     }
+   
+     @if function-exists("list-separator") == true {
+       @return list-separator($list);
+     }
+   
+     // list-separator polyfill by Hugo Giraudel (https://sass-compatibility.github.io/#list_separator_function)
+     $test-list: ();
+     @each $item in $list {
+       $test-list: append($test-list, $item, space);
+     }
+   
+     @return if($test-list == $list, space, comma);
+   }
+   
+   @mixin rem-baseline($zoom: 100%) {
+     font-size: $zoom / 16px * $rem-baseline;
+   }
+   
+   @function rem-convert($to, $values...) {
+     $result: ();
+     $separator: rem-separator($values);
+   
+     @each $value in $values {
+       @if type-of($value) == "number" and unit($value) == "rem" and $to == "px" {
+         $result: append($result, $value / 1rem * $rem-baseline, $separator);
+       } @else if type-of($value) == "number" and unit($value) == "px" and $to == "rem" {
+         $result: append($result, $value / $rem-baseline * 1rem, $separator);
+       } @else if type-of($value) == "list" {
+         $value-separator: rem-separator($value);
+         $value: rem-convert($to, $value...);
+         $value: rem-separator($value, $value-separator);
+         $result: append($result, $value, $separator);
+       } @else {
+         $result: append($result, $value, $separator);
+       }
+     }
+   
+     @return if(length($result) == 1, nth($result, 1), $result);
+   }
+   
+   @function rem($values...) {
+     @if $rem-px-only {
+       @return rem-convert(px, $values...);
+     } @else {
+       @return rem-convert(rem, $values...);
+     }
+   }
+   
+   
